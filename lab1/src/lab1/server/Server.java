@@ -30,8 +30,6 @@ public class Server implements Runnable {
 
 	private final ExecutorService sendingExecutor = Executors.newSingleThreadExecutor();
 
-	private final InetAddress address;
-
 	private ServerSocket serverSocket;
 
 	private DatagramSocket datagramSocket;
@@ -39,8 +37,7 @@ public class Server implements Runnable {
 	private MulticastSocket multicastSocket;
 
 
-	public Server(final InetAddress address) {
-		this.address = address;
+	public Server() {
 	}
 
 	@Override

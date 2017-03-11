@@ -18,7 +18,7 @@ public class ServerApp {
 	public static void main(final String[] args) {
 		System.out.println("Starting server app");
 
-		final Server server = new Server(CommunicationUtils.DEFAULT_ADDRESS);
+		final Server server = new Server();
 
 		new Thread(server).start();
 

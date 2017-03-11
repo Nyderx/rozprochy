@@ -3,6 +3,7 @@ package lab1.client;
 import lab1.utils.CommunicationUtils;
 import lab1.utils.Message;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -17,12 +18,14 @@ public class Client implements Runnable {
 
 	private final AtomicBoolean taskValidProperty = new AtomicBoolean(true);
 
+	private final InetAddress address;
 
 	private ObjectOutputStream socketOut;
 
-	private final InetAddress address;
 	private Socket tcpSocket;
+
 	private DatagramSocket datagramSocket;
+
 	private MulticastSocket multicastSocket;
 
 	public Client(final InetAddress address) {
@@ -50,22 +53,6 @@ public class Client implements Runnable {
 		new Thread(this::runMulticastReceiver).start();
 	}
 
-	private void runMulticastReceiver() {
-		try {
-			multicastSocket.joinGroup(CommunicationUtils.DEFAULT_MULTICAST_ADDRESS);
-
-			while(taskValidProperty.get()) {
-				final byte[] buffer = new byte[CommunicationUtils.DATAGRAM_SIZE];
-				final DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-				multicastSocket.receive(packet);
-
-				System.out.println("Received by UDP multicast:" + Message.fromBytesArray(packet.getData()).toString());
-			}
-		} catch(final IOException e) {
-			logExceptionIfNeeded(e);
-		}
-	}
-
 	private void runTcpReceiver() {
 		try (ObjectInputStream input = new ObjectInputStream(tcpSocket.getInputStream())) {
 			Object object;
@@ -82,7 +69,9 @@ public class Client implements Runnable {
 			}
 			close();
 		} catch(final IOException e) {
-			logExceptionIfNeeded(e);
+			if(!(e instanceof EOFException)) {
+				logExceptionIfNeeded(e);
+			}
 		}
 	}
 
@@ -94,6 +83,22 @@ public class Client implements Runnable {
 				datagramSocket.receive(packet);
 
 				System.out.println("Received by UDP:" + Message.fromBytesArray(packet.getData()).toString());
+			}
+		} catch(final IOException e) {
+			logExceptionIfNeeded(e);
+		}
+	}
+	
+	private void runMulticastReceiver() {
+		try {
+			multicastSocket.joinGroup(CommunicationUtils.DEFAULT_MULTICAST_ADDRESS);
+
+			while(taskValidProperty.get()) {
+				final byte[] buffer = new byte[CommunicationUtils.DATAGRAM_SIZE];
+				final DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+				multicastSocket.receive(packet);
+
+				System.out.println("Received by UDP multicast:" + Message.fromBytesArray(packet.getData()).toString());
 			}
 		} catch(final IOException e) {
 			logExceptionIfNeeded(e);
@@ -131,13 +136,22 @@ public class Client implements Runnable {
 
 		taskValidProperty.set(false);
 
-		try {
-			if(tcpSocket != null) {
-				tcpSocket.close();
+		if(socketOut != null) {
+			try {
+				socketOut.close();
+			} catch (final IOException e) {
+				logger.log(Level.SEVERE, e.toString());
 			}
-		} catch (IOException e) {
-			logger.log(Level.SEVERE, e.toString());
 		}
+
+		if(tcpSocket != null) {
+			try {
+				tcpSocket.close();
+			} catch (final IOException e) {
+				logger.log(Level.SEVERE, e.toString());
+			}
+		}
+
 
 		if(datagramSocket != null) {
 			datagramSocket.close();
