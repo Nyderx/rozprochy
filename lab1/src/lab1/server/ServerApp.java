@@ -28,7 +28,6 @@ public class ServerApp {
 		handler.addHandler("/q", () -> {
 			server.close();
 			isValid.set(false);
-
 		});
 
 		try {
@@ -46,6 +45,8 @@ public class ServerApp {
 			server.close();
 			System.exit(1);
 		}
+		System.out.println("end serwer app");
+
 
 
 	}

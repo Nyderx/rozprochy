@@ -16,7 +16,7 @@ public class Client implements Runnable {
 
 	private final static Logger logger = Logger.getLogger(Client.class.toString());
 
-	private final AtomicBoolean taskValidProperty = new AtomicBoolean(true);
+	private final AtomicBoolean isValid = new AtomicBoolean(true);
 
 	private final InetAddress address;
 
@@ -57,7 +57,7 @@ public class Client implements Runnable {
 		try (ObjectInputStream input = new ObjectInputStream(tcpSocket.getInputStream())) {
 			Object object;
 			try {
-				while (taskValidProperty.get() && (object = input.readObject()) != null) {
+				while (isValid.get() && (object = input.readObject()) != null) {
 					if(object instanceof Message) {
 						System.out.println("Received by TCP chat: " + object.toString());
 					}
@@ -77,7 +77,7 @@ public class Client implements Runnable {
 
 	private void runUdpReceiver() {
 		try {
-			while(taskValidProperty.get()) {
+			while(isValid.get()) {
 				final byte[] buffer = new byte[CommunicationUtils.DATAGRAM_SIZE];
 				final DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 				datagramSocket.receive(packet);
@@ -93,7 +93,7 @@ public class Client implements Runnable {
 		try {
 			multicastSocket.joinGroup(CommunicationUtils.DEFAULT_MULTICAST_ADDRESS);
 
-			while(taskValidProperty.get()) {
+			while(isValid.get()) {
 				final byte[] buffer = new byte[CommunicationUtils.DATAGRAM_SIZE];
 				final DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 				multicastSocket.receive(packet);
@@ -134,7 +134,7 @@ public class Client implements Runnable {
 	public void close() {
 		System.out.println("Closing client");
 
-		taskValidProperty.set(false);
+		isValid.set(false);
 
 		if(socketOut != null) {
 			try {
@@ -163,7 +163,7 @@ public class Client implements Runnable {
 	}
 
 	private void logExceptionIfNeeded(final Exception e) {
-		if(taskValidProperty.get()) {
+		if(isValid.get()) {
 			logger.log(Level.SEVERE, e.toString());
 		}
 	}

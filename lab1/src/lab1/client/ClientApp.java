@@ -23,11 +23,11 @@ public class ClientApp implements Runnable {
 	public void run() {
 		System.out.println("Starting client");
 
-		final AtomicBoolean taskValidProperty = new AtomicBoolean(true);
+		final AtomicBoolean isValid = new AtomicBoolean(true);
 
 		final CommandHandler handler = new CommandHandler();
 		handler.addHandler("/q", () -> {
-			taskValidProperty.set(false);
+			isValid.set(false);
 			client.close();
 		});
 		handler.addHandler("/m", client::sendAsciiArtByUdp);
@@ -37,7 +37,7 @@ public class ClientApp implements Runnable {
 
 		try(final BufferedReader systemIn = new BufferedReader(new InputStreamReader(System.in))) {
 			String line;
-			while(taskValidProperty.get() && (line = systemIn.readLine()) != null) {
+			while(isValid.get() && (line = systemIn.readLine()) != null) {
 				if(handler.canHandle(line)) {
 					handler.handle(line);
 				} else {

@@ -24,7 +24,7 @@ public class Server implements Runnable {
 
 	private final List<Client> clients = new LinkedList<>();
 
-	private final AtomicBoolean taskValidProperty = new AtomicBoolean(true);
+	private final AtomicBoolean isValid = new AtomicBoolean(true);
 
 	private final ExecutorService clientsExecutor = Executors.newFixedThreadPool(MAX_CLIENTS);
 
@@ -55,12 +55,11 @@ public class Server implements Runnable {
 		new Thread(this::runUdpServer).start();
 		new Thread(this::runMulticastServer).start();
 		new Thread(this::runTcpServer).start();
-
 	}
 
 	private void runTcpServer() {
 		try {
-			while (taskValidProperty.get()) {
+			while (isValid.get()) {
 
 				final Socket clientSocket = serverSocket.accept();
 				final Client client = new Client(clientSocket, this);
@@ -73,7 +72,7 @@ public class Server implements Runnable {
 
 	private void runUdpServer() {
 		try  {
-			while (taskValidProperty.get()) {
+			while (isValid.get()) {
 				final byte[] buffer = new byte[CommunicationUtils.DATAGRAM_SIZE];
 				final DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 				datagramSocket.receive(packet);
@@ -102,7 +101,7 @@ public class Server implements Runnable {
 		try {
 			multicastSocket.joinGroup(CommunicationUtils.DEFAULT_MULTICAST_ADDRESS);
 
-			while(taskValidProperty.get()) {
+			while(isValid.get()) {
 				final byte[] buffer = new byte[CommunicationUtils.DATAGRAM_SIZE];
 				final DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 				multicastSocket.receive(packet);
@@ -137,11 +136,15 @@ public class Server implements Runnable {
 		}
 	}
 
+	public boolean isValid() {
+		return this.isValid.get();
+	}
+
 	public void close() {
-		taskValidProperty.set(false);
-		synchronized (clients) {
-			clients.forEach(Client::clean);
-		}
+		isValid.set(false);
+		sendingExecutor.shutdown();
+		clients.forEach(Client::clean);
+		clientsExecutor.shutdown();
 		try {
 			serverSocket.close();
 		} catch (final IOException e) {
@@ -152,7 +155,7 @@ public class Server implements Runnable {
 	}
 
 	private void logExceptionIfNeeded(final Exception e) {
-		if(taskValidProperty.get()) {
+		if(isValid.get()) {
 			logger.log(Level.SEVERE, e.toString());
 		}
 	}
@@ -188,10 +191,10 @@ public class Server implements Runnable {
 				}
 				clean();
 			} catch (final IOException e) {
-				if(!(e instanceof EOFException)) {
+				if(!(e instanceof EOFException) && server.isValid()) {
 					clientLogger.log(Level.SEVERE, e.toString());
+					clean();
 				}
-				clean();
 			}
 		}
 
@@ -228,15 +231,14 @@ public class Server implements Runnable {
 		}
 
 		public void clean() {
-			System.out.println("Client disconnected");
-
 			server.removeClient(this);
 			if(out != null) {
 				try {
 					out.close();
 				} catch (final IOException e) {
 					logger.log(Level.SEVERE, e.toString());
-				}			}
+				}
+			}
 
 			if(in != null) {
 				try {
@@ -253,6 +255,7 @@ public class Server implements Runnable {
 					clientLogger.log(Level.SEVERE, e.toString());
 				}
 			}
+			System.out.println("Client disconnected");
 		}
 	}
 
