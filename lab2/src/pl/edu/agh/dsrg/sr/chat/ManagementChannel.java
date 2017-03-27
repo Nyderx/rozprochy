@@ -1,7 +1,5 @@
 package pl.edu.agh.dsrg.sr.chat;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.stream.Collectors;
@@ -27,7 +25,8 @@ import org.jgroups.protocols.pbcast.NAKACK2;
 import org.jgroups.protocols.pbcast.STABLE;
 import org.jgroups.protocols.pbcast.STATE_TRANSFER;
 import org.jgroups.stack.ProtocolStack;
-import org.jgroups.util.Util;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 import pl.edu.agh.dsrg.sr.chat.protos.ChatOperationProtos.ChatAction;
 import pl.edu.agh.dsrg.sr.chat.protos.ChatOperationProtos.ChatState;
@@ -48,7 +47,7 @@ public class ManagementChannel extends ReceiverAdapter {
 	}
 
 	public synchronized void send(final ChatAction chatAction) throws Exception {
-		channel.send(new Message(null, null, chatAction));
+		channel.send(new Message(null, null, chatAction.toByteArray()));
 	}
 
 	@Override
@@ -58,26 +57,31 @@ public class ManagementChannel extends ReceiverAdapter {
 
 	@Override
 	public synchronized void receive(final Message message) {
-		final ChatAction action = (ChatAction) message.getObject();
+		ChatAction action;
+		try {
+			action = ChatAction.parseFrom(message.getRawBuffer());
 
-		switch (action.getAction()) {
-		case JOIN:
-			state.addMember(action.getChannel(), action.getNickname());
-			break;
-		case LEAVE:
-			state.removeMember(action.getChannel(), action.getNickname());
-			break;
+			switch (action.getAction()) {
+			case JOIN:
+				state.addMember(action.getChannel(), action.getNickname());
+				break;
+			case LEAVE:
+				state.removeMember(action.getChannel(), action.getNickname());
+				break;
+			}
+		} catch (final InvalidProtocolBufferException e) {
+			e.printStackTrace();
 		}
 	}
 
 	@Override
 	public synchronized void getState(final OutputStream output) throws Exception {
-		Util.objectToStream(state.toChatStateMessage(), new DataOutputStream(output));
+		state.toChatStateMessage().writeTo(output);
 	}
 
 	@Override
 	public synchronized void setState(final InputStream input) throws Exception {
-		final ChatState chatState = (ChatState) Util.objectFromStream(new DataInputStream(input));
+		final ChatState chatState = ChatState.parseFrom(input);
 		state.fromChatStateMessage(chatState);
 	}
 

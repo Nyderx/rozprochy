@@ -25,6 +25,8 @@ import org.jgroups.protocols.pbcast.STABLE;
 import org.jgroups.protocols.pbcast.STATE_TRANSFER;
 import org.jgroups.stack.ProtocolStack;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+
 import pl.edu.agh.dsrg.sr.chat.protos.ChatOperationProtos.ChatMessage;
 
 public class Channel extends ReceiverAdapter {
@@ -44,19 +46,23 @@ public class Channel extends ReceiverAdapter {
 	}
 
 	public synchronized void send(final String line) throws Exception {
-		channel.send(new Message(null, null, ChatMessage.newBuilder().setMessage(line).build()));
+		channel.send(new Message(null, null, ChatMessage.newBuilder().setMessage(line).build().toByteArray()));
 	}
 
 	@Override
 	public void receive(final Message message) {
 		final StringBuilder sb = new StringBuilder();
-		sb.append("[").append(name).append("] ").append(channel.getName(message.getSrc())).append(": ")
-				.append(((ChatMessage) message.getObject()).getMessage());
-		final String line = sb.toString();
-		if (!isActive) {
-			unreadMessages.add(line);
-		} else {
-			System.out.println(line);
+		try {
+			sb.append("[").append(name).append("] ").append(channel.getName(message.getSrc())).append(": ")
+					.append(ChatMessage.parseFrom(message.getRawBuffer()));
+			final String line = sb.toString();
+			if (!isActive) {
+				unreadMessages.add(line);
+			} else {
+				System.out.println(line);
+			}
+		} catch (final InvalidProtocolBufferException e) {
+			e.printStackTrace();
 		}
 	}
 
