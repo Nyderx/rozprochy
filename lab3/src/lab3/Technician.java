@@ -6,18 +6,17 @@ import java.io.InputStreamReader;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
-public class Technician implements Runnable {
+public class Technician extends InfoReceiver implements Runnable {
 
-	private Channel channel;
+	final BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
 
-	private final Consumer consumer = new DefaultConsumer(channel) {
+	private final Consumer examinationConsumer = new DefaultConsumer(channel) {
 		@Override
 		public void handleDelivery(final String consumerTag, final Envelope envelope,
 				final AMQP.BasicProperties properties, final byte[] body) throws IOException {
@@ -44,31 +43,45 @@ public class Technician implements Runnable {
 	@Override
 	public void run() {
 		try {
+			System.out.println("Technician");
+
 			final ConnectionFactory factory = new ConnectionFactory();
 			factory.setHost("localhost");
 			final Connection connection = factory.newConnection();
 			channel = connection.createChannel();
 
-			channel.exchangeDeclare(Utils.EXCHANGE_NAME, BuiltinExchangeType.DIRECT);
+			startReceivingInfo();
 
+			channel.exchangeDeclare(Utils.EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
 			prepareQueues();
-
 			channel.basicQos(1);
 
-			final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-			String line;
-			line = br.readLine();
-			channel.basicConsume(Injury.valueOf(line).toString(), false, consumer);
-
-			line = br.readLine();
-			channel.basicConsume(Injury.valueOf(line).toString(), false, consumer);
+			registerForInjuries();
 
 			System.out.println("Listening");
 
+			String line;
+			while ((line = inputReader.readLine()) != null) {
+				if (line.equals("quit")) {
+					break;
+				}
+			}
+
+			channel.close();
+			connection.close();
 		} catch (final Exception e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
+	}
+
+	private void registerForInjuries() throws IOException {
+		String line;
+		line = inputReader.readLine();
+		channel.basicConsume(Injury.valueOf(line).toString(), false, examinationConsumer);
+
+		line = inputReader.readLine();
+		channel.basicConsume(Injury.valueOf(line).toString(), false, examinationConsumer);
 	}
 
 	private void prepareQueues() throws IOException {

@@ -8,27 +8,29 @@ import java.util.UUID;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
-public class Doctor implements Runnable {
+public class Doctor extends InfoReceiver implements Runnable {
 
 	private final List<String> corrIds = new LinkedList<>();
-	private Channel channel;
 	private String replyQueueName;
 
 	@Override
 	public void run() {
 		try {
+			System.out.println("Doctor");
+
 			final ConnectionFactory factory = new ConnectionFactory();
 			factory.setHost(Utils.HOST_NAME);
 			final Connection connection = factory.newConnection();
 			channel = connection.createChannel();
 
-			channel.exchangeDeclare(Utils.EXCHANGE_NAME, BuiltinExchangeType.DIRECT);
+			startReceivingInfo();
+
+			channel.exchangeDeclare(Utils.EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
 
 			replyQueueName = channel.queueDeclare().getQueue();
 			channel.queueBind(replyQueueName, Utils.EXCHANGE_NAME, replyQueueName);
@@ -45,11 +47,9 @@ public class Doctor implements Runnable {
 			});
 
 			final Scanner scanner = new Scanner(System.in);
-			boolean isValid = true;
-			while (isValid) {
+			while (true) {
 				final String injury = scanner.next();
 				if (injury.equals("quit")) {
-					isValid = false;
 					break;
 				}
 
