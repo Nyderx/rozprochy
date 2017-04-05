@@ -14,7 +14,7 @@ public abstract class InfoReceiver {
 	protected void startReceivingInfo() throws IOException {
 		channel.exchangeDeclare(Utils.INFO_EXCHANGE_NAME, BuiltinExchangeType.FANOUT);
 		final String infoQueue = channel.queueDeclare().getQueue();
-		channel.queueBind(infoQueue, Utils.INFO_EXCHANGE_NAME, Utils.INFO_QUEUE_NAME);
+		channel.queueBind(infoQueue, Utils.INFO_EXCHANGE_NAME, Utils.INFO_ROUTING_KEY);
 		channel.basicConsume(infoQueue, true, new DefaultConsumer(channel) {
 			@Override
 			public void handleDelivery(final String consumerTag, final Envelope envelope,

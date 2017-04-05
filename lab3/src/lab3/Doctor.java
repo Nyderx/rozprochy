@@ -30,10 +30,10 @@ public class Doctor extends InfoReceiver implements Runnable {
 
 			startReceivingInfo();
 
-			channel.exchangeDeclare(Utils.EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
+			channel.exchangeDeclare(Utils.MAIN_EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
 
 			replyQueueName = channel.queueDeclare().getQueue();
-			channel.queueBind(replyQueueName, Utils.EXCHANGE_NAME, replyQueueName);
+			channel.queueBind(replyQueueName, Utils.MAIN_EXCHANGE_NAME, replyQueueName);
 
 			channel.basicConsume(replyQueueName, true, new DefaultConsumer(channel) {
 				@Override
@@ -73,7 +73,7 @@ public class Doctor extends InfoReceiver implements Runnable {
 		final AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(corrId)
 				.replyTo(replyQueueName).build();
 
-		channel.basicPublish(Utils.EXCHANGE_NAME, injury.toString(), props, name.getBytes());
+		channel.basicPublish(Utils.MAIN_EXCHANGE_NAME, injury.toString(), props, name.getBytes());
 		System.out.println("Send " + injury.toString() + " " + name);
 
 	}

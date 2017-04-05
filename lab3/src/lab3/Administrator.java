@@ -23,10 +23,10 @@ public class Administrator implements Runnable {
 			final Connection connection = factory.newConnection();
 			channel = connection.createChannel();
 
-			channel.exchangeDeclare(Utils.EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
+			channel.exchangeDeclare(Utils.MAIN_EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
 
 			final String queueName = channel.queueDeclare().getQueue();
-			channel.queueBind(queueName, Utils.EXCHANGE_NAME, "#");
+			channel.queueBind(queueName, Utils.MAIN_EXCHANGE_NAME, "#");
 
 			channel.basicConsume(queueName, true, new DefaultConsumer(channel) {
 				@Override
@@ -37,7 +37,7 @@ public class Administrator implements Runnable {
 			});
 
 			channel.exchangeDeclare(Utils.INFO_EXCHANGE_NAME, BuiltinExchangeType.FANOUT);
-			channel.queueDeclare(Utils.INFO_QUEUE_NAME, false, false, false, null);
+			channel.queueDeclare(Utils.INFO_ROUTING_KEY, false, false, false, null);
 
 			System.out.println("Administrator is coming...");
 
@@ -63,7 +63,7 @@ public class Administrator implements Runnable {
 	}
 
 	private void sendInfo(final String message) throws IOException {
-		channel.basicPublish(Utils.INFO_EXCHANGE_NAME, Utils.INFO_QUEUE_NAME, null, message.getBytes());
+		channel.basicPublish(Utils.INFO_EXCHANGE_NAME, Utils.INFO_ROUTING_KEY, null, message.getBytes());
 	}
 
 	public static void main(final String[] args) {

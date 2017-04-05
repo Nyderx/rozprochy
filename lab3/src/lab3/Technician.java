@@ -32,7 +32,7 @@ public class Technician extends InfoReceiver implements Runnable {
 				e.printStackTrace();
 			}
 
-			channel.basicPublish(Utils.EXCHANGE_NAME, properties.getReplyTo(), replyProps,
+			channel.basicPublish(Utils.MAIN_EXCHANGE_NAME, properties.getReplyTo(), replyProps,
 					new String(message + " examination").getBytes());
 			channel.basicAck(envelope.getDeliveryTag(), false);
 
@@ -52,7 +52,7 @@ public class Technician extends InfoReceiver implements Runnable {
 
 			startReceivingInfo();
 
-			channel.exchangeDeclare(Utils.EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
+			channel.exchangeDeclare(Utils.MAIN_EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
 			prepareQueues();
 			channel.basicQos(1);
 
@@ -92,7 +92,7 @@ public class Technician extends InfoReceiver implements Runnable {
 
 	private void prepareQueue(final String key) throws IOException {
 		channel.queueDeclare(key, false, false, false, null);
-		channel.queueBind(key, Utils.EXCHANGE_NAME, key);
+		channel.queueBind(key, Utils.MAIN_EXCHANGE_NAME, key);
 	}
 
 	public static void main(final String[] args) {
