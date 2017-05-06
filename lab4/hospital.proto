@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+
+option java_multiple_files = true;
+option java_package = "lab4.gen";
+option objc_class_prefix = "RPC";
+
+message PatientQuery {
+	string patient = 1;
+}
+
+message DoctorQuery {
+	string patient = 1;
+	repeated RowQuery rowsRequirements = 2;
+}
+
+message RowQuery {
+	string name = 1;
+	int32 min = 2;
+	int32 max = 3;
+}
+
+message BooleanResponse {
+	bool success = 1;
+}
+
+message ResultRow {
+	string name = 1;
+	int32 value = 2;
+	string unit = 3;
+}
+
+message ResultRowsGroup {
+	string name = 1;
+	repeated ResultRow resultRows = 2;
+}
+
+message ResultsRecord {
+	string doctor = 1;
+	string patient = 2;
+	string date = 3;
+	repeated ResultRowsGroup resultRowsGroups = 4;
+}
+
+service PatientService {
+	rpc GetAll(PatientQuery) returns (stream ResultsRecord) {}
+}
+
+service DoctorService {
+	rpc GetAll(DoctorQuery) returns (stream ResultsRecord) {}
+}
+
+service LabService {
+	rpc AddResult(ResultsRecord) returns (BooleanResponse) {}
+}
