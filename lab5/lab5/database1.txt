@@ -1,0 +1,3 @@
+Zwiadowcy;20
+Hobbit;25
+Anna Karenina;15

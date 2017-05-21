@@ -1,0 +1,3 @@
+Krol Macius Pierwszy;120
+Ksiaze;110
+Lalka;40
