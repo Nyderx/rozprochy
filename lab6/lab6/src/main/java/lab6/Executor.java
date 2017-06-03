@@ -64,12 +64,24 @@ public class Executor {
 	}
 
 	private int countChildren() {
+		final Queue<String> remainedNodes = new LinkedList<>();
+		remainedNodes.add(znodePath);
+
+		int count = 0;
+
 		try {
-			return zooKeeper.getChildren(znodePath, false).size();
+			while (!remainedNodes.isEmpty()) {
+				final String node = remainedNodes.poll();
+				count++;
+				final List<String> children = zooKeeper.getChildren(node, false);
+				remainedNodes.addAll(
+						children.stream().map(childrenName -> node + "/" + childrenName).collect(Collectors.toList()));
+			}
 		} catch (KeeperException | InterruptedException e) {
 			e.printStackTrace();
 			return -1;
 		}
+		return count;
 
 	}
 

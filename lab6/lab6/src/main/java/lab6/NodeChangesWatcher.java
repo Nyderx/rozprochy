@@ -1,5 +1,10 @@
 package lab6;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.stream.Collectors;
+
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -61,7 +66,15 @@ public class NodeChangesWatcher implements Watcher {
 	private void registerAsWatcher() {
 		try {
 			if (zooKeeper.exists(znodePath, this) != null) {
-				zooKeeper.getChildren(znodePath, this);
+				final Queue<String> remainedNodes = new LinkedList<>();
+				remainedNodes.add(znodePath);
+
+				while (!remainedNodes.isEmpty()) {
+					final String node = remainedNodes.poll();
+					final List<String> children = zooKeeper.getChildren(node, this);
+					remainedNodes.addAll(children.stream().map(childrenName -> node + "/" + childrenName).collect(
+							Collectors.toList()));
+				}
 			}
 		} catch (final KeeperException e) {
 			e.printStackTrace();
